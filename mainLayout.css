@@ -1,0 +1,64 @@
+/* Copyright (c) 2017 MIT 6.813/6.831 course staff, all rights reserved.
+ * Redistribution of original or derived work requires permission of course staff.
+ */
+/* Your css code here! */
+
+#CandyCrushGrid {
+	width:320px; 
+	height:320px;
+}
+
+
+
+#CandyCrushLogo {
+	color: red;
+	font-size: 20px;
+	word-wrap: break-word;
+}
+
+#firstColumn {
+	padding-top: 130px;
+	align-content: center;
+	padding-left: 110px;
+}
+
+#mainColumn {
+	padding-top: 25px;
+	align-items: center;
+	justify-content: center;
+	display:flex;
+}
+
+#lastColumn {
+	padding-top: 25px;
+	/*flex-direction:center;*/
+	/*justify-content: center;*/
+	/*align-items: center;
+	justify-content: center;*/
+}
+
+table {
+  border: 2px solid black;
+}
+
+td {
+  padding: 10px;
+  border: 2px solid black;
+  text-align: center;
+  width: 40px;
+}
+
+#arrowGrid {
+	display: grid;
+	grid-template-columns: auto auto auto; 
+	padding-top: 50px;
+	padding-bottom: 50px;
+	padding-left: 10px;
+}
+
+#CrushOnce {
+	/*flex-direction:center;*/
+	justify-content: center;
+	align-items: center;
+	justify-content: center;
+}

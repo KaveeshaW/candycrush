@@ -1,0 +1,367 @@
+<!--
+CandyCrush
+Your Name: Kaveesha Weerasiri
+Collaborators: I am using the code from lab 1 and lab 2, code from piazza, and code from office hours
+I used https://code-boxx.com/beginner-create-grid-html-css/#sec-grid to make the grid for the four buttons with css
+I looked at https://stackoverflow.com/questions/14323082/why-doesnt-backgroundcolor-rgba-b-c-work to see how to use rgb values in inline css
+https://stackoverflow.com/questions/30364849/run-next-function-after-settimeout-done for looking at functions
+I used https://www.toptal.com/designers/htmlarrows/ to find the html code for the arrows
+-->
+<!DOCTYPE html>
+<html>
+<!--
+/* Copyright (c) 2017 MIT 6.813/6.831 course staff, all rights reserved.
+ * Redistribution of original or derived work requires permission of course staff.
+ */
+-->
+
+<head>
+<meta charset="utf-8">
+<title>CandyCrush</title>
+
+<!-- Load style sheets -->
+<link rel="stylesheet" href=
+  "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.css">
+
+<link rel="stylesheet" href="mainLayout.css">
+
+<!-- Use mobile-aware viewport -->
+<meta name="viewport" content=
+  "width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!-- Load any supplemental Javascript libraries here -->
+<script src=
+  "https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src=
+  "https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.2/seedrandom.js">
+</script>
+<script src="candy.js"></script>
+<script src="board.js"></script>
+<script src="rules.js"></script>
+
+<script>
+
+// By default, the first board loaded by your page will be the same 
+// each time you load (which is accomplished by "seeding" the random
+// number generator. This makes testing (and grading!) easier!
+Math.seedrandom(0);
+
+
+// A short jQuery extension to read query parameters from the URL.
+$.extend({
+  getUrlVars: function() {
+    var vars = [], pair;
+    var pairs = window.location.search.substr(1).split('&');
+    for (var i = 0; i < pairs.length; i++) {
+      pair = pairs[i].split('=');
+      vars.push(pair[0]);
+      vars[pair[0]] = pair[1] &&
+          decodeURIComponent(pair[1].replace(/\+/g, ' '));
+    }
+    return vars;
+  },
+  getUrlVar: function(name) {
+    return $.getUrlVars()[name];
+  }
+});
+
+// constants
+var DEFAULT_BOARD_SIZE = 8;
+
+// data model at global scope for easier debugging
+var board;
+var rules;
+var chosenCandy; //used to pass around the candy that the user has chosen
+var defaultColorOfButtons = 'rgb(' + [239, 239, 239].join(',') + ')';
+
+// initialize board
+if ($.getUrlVar('size') && $.getUrlVar('size') >= 3) {
+  board = new Board($.getUrlVar('size'));
+} else {
+  board = new Board(DEFAULT_BOARD_SIZE);
+}
+
+// load a rule
+rules = new Rules(board);
+
+// Final initialization entry point: the Javascript code inside this block
+// runs at the end of start-up when the page has finished loading.
+$(document).ready(function()
+{
+    createTable();
+    rules.prepareNewGame();
+    disableAllButtons();
+    document.querySelector("#moveInput").focus(); 
+});
+
+
+/* Event Handlers */
+// access the candy object with info.candy
+
+// add a candy to the board
+$(board).on('add', function(e, info)
+{
+  let row = info.candy.row;
+  let col = info.candy.col;
+  let color = info.candy.color;
+  let cell = document.querySelector("#CandyCrushGrid").rows[row].cells[col];
+  cell.style.color = color == 'yellow' ? 'black' : 'white'; 
+  cell.style.backgroundColor = color;
+});
+
+// move a candy on the board
+$(board).on('move', function(e, info)
+{
+  //console.log("move");
+  let fromCell = document.querySelector("#CandyCrushGrid").rows[info.fromRow].cells[info.fromCol];
+  let toCell = document.querySelector("#CandyCrushGrid").rows[info.toRow].cells[info.toCol];
+
+  toCell.style.backgroundColor = info.candy.color;
+  toCell.style.color = info.candy.color == 'yellow' ? 'black' : 'white';
+  document.querySelector("#moveInput").value = '';
+  document.querySelector("#moveInput").focus(); 
+});
+
+// remove a candy from the board
+$(board).on('remove', function(e, info)
+{
+  let deletedCell = document.querySelector("#CandyCrushGrid").rows[info.fromRow].cells[info.fromCol];
+  deletedCell.style.color = 'white'; 
+  deletedCell.style.backgroundColor = 'black';    
+});
+
+// move a candy on the board
+$(board).on('scoreUpdate', function(e, info)
+{
+  // Your code here. To be implemented in pset 2.
+});
+
+// Button Events
+$(document).on('click', "#newGame", function(evt)
+{
+    //you need to clear the board before 
+    board.clear();
+    rules.prepareNewGame();
+    disableAllButtons();
+    document.querySelector("#CrushOnce").style.backgroundColor = defaultColorOfButtons;
+    resetToDefaultArrowButtonColor();
+    document.querySelector("#moveInput").focus();
+});
+
+$(document).on('click', "#up", function(evt)
+{
+  flipSepecificCandy('up');
+});
+
+$(document).on('click', "#left", function(evt)
+{
+  flipSepecificCandy('left');
+});
+
+$(document).on('click', "#right", function(evt)
+{
+  flipSepecificCandy('right');
+});
+
+$(document).on('click', "#down", function(evt)
+{
+  flipSepecificCandy('down');
+});
+
+$(document).on('click', "#CrushOnce", function(evt)
+{
+  crushCandiesOnce();   
+});
+
+function crushCandiesOnce() {
+  rules.removeCrushes(rules.getCandyCrushes());
+  let crushOnceButton = document.querySelector("#CrushOnce");
+  setTimeout(() => {rules.moveCandiesDown(); updateCrushOnceButton();} , 500);
+}
+
+function updateCrushOnceButton() {
+  let crushOnceButton = document.querySelector("#CrushOnce");
+  if(rules.getCandyCrushes().length == 0) {
+    crushOnceButton.disabled = true;
+    crushOnceButton.style.backgroundColor = defaultColorOfButtons;
+    document.querySelector("#moveInput").disabled = false;
+    document.querySelector("#moveInput").focus();
+  }
+  else {
+    crushOnceButton.disabled = false;
+    document.querySelector("#moveInput").disabled = true;
+  }
+}
+
+// keyboard events arrive here
+$(document).on('keydown', function(evt) {
+  let spaceKeyCode = 32;
+  if(evt.keyCode == spaceKeyCode) {
+    //crushCandiesOnce();   
+  }
+});
+
+
+</script>
+
+
+</head>
+
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-3" id="firstColumn">
+      <div>
+      <!-- Column 1 Code Here -->
+      <b><p id="CandyCrushLogo">Candy Crush </p></b>
+      <button class="btn" id="newGame">New Game</button>
+
+      </div>
+  </div>
+
+    <div class="col-md-6" id="mainColumn">
+
+      <!-- Column 2 Code Here -->
+      <table id="CandyCrushGrid"></table>
+
+    </div>
+
+    <div class="col-md-3" id="lastColumn">
+
+      <!-- Column 3 Code Here -->
+      <b>Move:</b>
+      <input type="text" id="moveInput"></input>
+
+      <div id="arrowGrid">
+        <div></div>
+        <button class = "btn" id="up">&#8593</button>
+        <div></div>
+        <button class = "btn" id="left">&#8592</button>
+        <div></div>
+        <button class = "btn" id="right">&#8594</button>
+        <div></div>
+        <button class = "btn" id="down">&#8595</button>
+        <div></div>
+      </div>
+
+      <p id="CrushButtonWrapper" align="center">
+      <button class="btn" id="CrushOnce">Crush Once</button>
+      </p>
+  </div> <!-- class="row" -->
+</div> <!-- class="container" -->
+
+<script type="text/javascript">
+    function createTable() {
+      let letters_in_cell = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      let tableElem = document.getElementById('CandyCrushGrid');
+
+      for (let i = 0; i < DEFAULT_BOARD_SIZE; i++) {
+          rowElem = document.createElement('tr');
+
+          for (let j = 0; j < DEFAULT_BOARD_SIZE; j++) {
+              colElem = document.createElement('td');
+              colElem.innerHTML = letters_in_cell[j] + (i + 1);
+              rowElem.appendChild(colElem);
+          }
+          tableElem.appendChild(rowElem);
+      }
+      document.querySelector("div#mainColumn").appendChild(tableElem);
+    }
+
+    function disableAllButtons() {
+      document.querySelector("#up").disabled = true;
+      document.querySelector("#left").disabled = true;
+      document.querySelector("#right").disabled = true;
+      document.querySelector("#down").disabled = true;
+      document.querySelector("#CrushOnce").disabled = true;
+    }
+
+    function enableButtons() {
+      document.querySelector("#up").disabled = false;
+      document.querySelector("#left").disabled = false;
+      document.querySelector("#right").disabled = false;
+      document.querySelector("#down").disabled = false;
+    }
+
+    function flipSepecificCandy(whichDirection) {
+        board.flipCandies(chosenCandy, board.getCandyInDirection(chosenCandy, whichDirection));
+        disableAllButtons();
+        let crushOnceButton = document.querySelector("#CrushOnce");
+        crushOnceButton.disabled = false;
+        crushOnceButton.style.backgroundColor = 'green';
+        document.querySelector("#moveInput").disabled = true;
+        resetToDefaultArrowButtonColor();
+    }
+
+    //event listener for when user enters something in the text field
+    let userInput = document.querySelector("#moveInput");
+    userInput.addEventListener('input', checkInputValue);
+
+    function checkInputValue(e) {
+      console.log(e.target.value.charAt(0));
+      let input = e.target.value;
+      if(input.match("^[a-hA-H][1-8]") != null && input.length == 2) {
+        chosenCandy = stringToCandy();
+        enableValidButtons(chosenCandy);
+      }
+      else {
+        let intInput = parseInt(input);
+        if(input.length > 2) {
+          alert("Please enter two characters. Clearing input");
+          document.querySelector("#moveInput").value = '';
+          document.querySelector("#moveInput").focus();
+        }
+        //tried to use the match method but it didn't like using it on a char
+        else if (input.length == 1 && (intInput >= 0 && intInput <=9)){
+          alert("Please enter a letter first, not a number. Clearing input");
+          document.querySelector("#moveInput").value = '';
+          document.querySelector("#moveInput").focus();
+        }
+        disableAllButtons();
+        resetToDefaultArrowButtonColor();
+      }
+    }
+
+    //candy is of type candy, not a string (that's why I had to parse the string and convert it into a candy)
+    function enableValidButtons(candy) {
+      let upButton = document.querySelector("#up");
+      let leftButton = document.querySelector("#left");
+      let rightButton = document.querySelector("#right");
+      let downButton = document.querySelector("#down");
+      let colorToChangeTo = 'green';
+
+      //disabling or enabling the buttons based off input
+      upButton.disabled = rules.isMoveTypeValid(candy, 'up') ? false : true;
+      leftButton.disabled = rules.isMoveTypeValid(candy, 'left') ? false : true;
+      rightButton.disabled = rules.isMoveTypeValid(candy, 'right') ? false : true;
+      downButton.disabled = rules.isMoveTypeValid(candy, 'down') ? false : true;
+      
+      upButton.style.backgroundColor = upButton.disabled ? defaultColorOfButtons : colorToChangeTo;
+      leftButton.style.backgroundColor = leftButton.disabled ? defaultColorOfButtons : colorToChangeTo;
+      rightButton.style.backgroundColor = rightButton.disabled ? defaultColorOfButtons : colorToChangeTo;
+      downButton.style.backgroundColor = downButton.disabled ? defaultColorOfButtons : colorToChangeTo;
+    }
+
+    function resetToDefaultArrowButtonColor() {
+      //need to put quotes because it's a property, creating a string with commas
+      document.querySelector("#up").style.backgroundColor = defaultColorOfButtons;
+      document.querySelector("#left").style.backgroundColor = defaultColorOfButtons;
+      document.querySelector("#right").style.backgroundColor = defaultColorOfButtons;
+      document.querySelector("#down").style.backgroundColor = defaultColorOfButtons;
+    }
+
+    function stringToCandy() {
+        let mapLetterToIndex = {'a': 0, 'b': 1, 'c': 2, 'd':3, 'e':4, 'f': 5, 'g': 6, 'h' : 7};
+        //need to lower case it here because if I convert the value in the text field when matching the value to a pattern, the user will never be able to type upper case letters 
+        let input = document.querySelector("#moveInput").value.toLowerCase();
+        input = input.split("");
+        //the numbers start at one, not zero, so you have to delete one
+        return board.getCandyAt(input[1] - 1, mapLetterToIndex[input[0]]);
+    }
+
+</script>
+
+</body>
+
+</html>
